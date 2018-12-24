@@ -5,9 +5,11 @@ verify_ssl = true
 
 [dev-packages]
 ipython = "*"
+pylint = "*"
 
 [packages]
 boto3 = "*"
+click = "*"
 
 [requires]
 python_version = "3.7"

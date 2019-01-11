@@ -171,6 +171,26 @@ def start_instances(project):
 
     return
 
+@instances.command('reboot')
+@click.option('--project', default=None,
+    help='Only instances for this project')
+@click.option('--force', flag_value=True,
+    help='Force instances to reboot')
+def reboot_instances(project):
+    'Reboot EC2 Instances'
+
+    instances = filter_instances(project)
+
+    for i in instances:
+        print("Rebooting {0}...".format(i.id))
+        try:
+            i.reboot()
+        except botocore.exceptions.ClientError as e:
+            print(" Could not reboot {0}.".format(i.id) + str(e))
+            continue
+        print('Please specify the project.')
+
+    return
 
 if __name__ == '__main__':
     cli()

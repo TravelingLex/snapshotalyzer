@@ -113,52 +113,67 @@ def create_snapshots(ctx, project, force):
     instances = filter_instances(ec2, project)
 
     if force is True:
+        try:
+        
+            for i in instances:
+                print("Stopping {0}...".format(i.id))
 
-        for i in instances:
-            print("Stopping {0}...".format(i.id))
+                i.stop()
+                i.wait_until_stopped()
 
-            i.stop()
-            i.wait_until_stopped()
+                for v in i.volumes.all():
+                    if has_pending_snapshot(v):
+                        print("Skipping {0}, snapshot already in progress ".format(v.id))
+                        continue
+                    else:
+                        print("   Creating snapshot of {0}".format(v.id))
+                        v.create_snapshot(Description="Created by Snapshotalyzer")
 
-            for v in i.volumes.all():
-                if has_pending_snapshot(v):
-                    print("Skipping {0}, snapshot already in progress ".format(v.id))
-                    continue
-                else:
-                    print("   Creating snapshot of {0}".format(v.id))
-                    v.create_snapshot(Description="Created by Snapshotalyzer")
+                print("Starting {0}...".format(i.id))
 
-            print("Starting {0}...".format(i.id))
+                i.start()
+                i.wait_until_running()
 
-            i.start()
-            i.wait_until_running()
-
-        print("Job's done!")
+            print("Job's done!")
+        except botocore.exceptions.WaiterError as e:
+            print("Could not complete snapshot(s) of {0}. ".format(i.id) + str(e))
+            return
+        except botocore.exceptions.ClientError as e:
+            print("Could not complete snapshot(s) of {0}. ".format(i.id) + str(e))
+            return
 
     elif project is not None:
 
-        for i in instances:
-            print("Stopping {0}...".format(i.id))
+        try:
+            for i in instances:
+                print("Stopping {0}...".format(i.id))
 
-            i.stop()
-            i.wait_until_stopped()
+                i.stop()
+                i.wait_until_stopped()
 
-            for v in i.volumes.all():
-                if has_pending_snapshot(v):
-                    print("Skipping {0}, snapshot already in progress ".format(v.id))
-                    continue
-                else:
-                    print("   Creating snapshot of {0}".format(v.id))
-                    v.create_snapshot(Description="Created by Snapshotalyzer")
+                for v in i.volumes.all():
+                    if has_pending_snapshot(v):
+                        print("Skipping {0}, snapshot already in progress ".format(v.id))
+                        continue
+                    else:
+                        print("   Creating snapshot of {0}".format(v.id))
+                        v.create_snapshot(Description="Created by Snapshotalyzer")
 
-            print("Starting {0}...".format(i.id))
+                print("Starting {0}...".format(i.id))
 
-            i.start()
-            i.wait_until_running()
+                i.start()
+                i.wait_until_running()
 
-        print("Job's done!")
+            print("Job's done!")
 
-        return
+            return
+
+        except botocore.exceptions.WaiterError as e:
+            print("Could not complete snapshot(s) of {0}. ".format(i.id) + str(e))
+            return
+        except botocore.exceptions.ClientError as e:
+            print("Could not complete snapshot(s) of {0}. ".format(i.id) + str(e))
+            return
     else:
         print("Please specify a project name.")
     

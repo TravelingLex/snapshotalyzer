@@ -18,5 +18,5 @@ shotty uses the configuration file created by the AWS cli. e.g.
 
 *profile* is optional
 *command* is instances, volumes, or snapshots
-*subcommand* - depends on commandgi
+*subcommand* - depends on command
 *project* is optional

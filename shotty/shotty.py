@@ -51,7 +51,7 @@ def list_snapshots(ctx,project, list_all):
     "List EC2 snapshots"
 
     ec2 = start_session(ctx.obj['PROFILE'])
-    instances = filter_instances(ec2,project,instance)
+    instances = filter_instances(ec2,project)
 
     for i in instances:
         for v in i.volumes.all():

@@ -51,7 +51,11 @@ def list_snapshots(ctx,project, list_all):
     "List EC2 snapshots"
 
     ec2 = start_session(ctx.obj['PROFILE'])
-    instances = filter_instances(ec2,project)
+<<<<<<< HEAD
+    instances = filter_instances(ec2,project,server_id)
+=======
+    instances = filter_instances(ec2,project,server_id)
+>>>>>>> 39e927d29216b10a64c0e06884e0edc6b5f5e47c
 
     for i in instances:
         for v in i.volumes.all():
@@ -120,23 +124,27 @@ def create_snapshots(ctx, project, force, server_id):
     if force or project or server_id:
         try:
             for i in instances:
+                instance_state = i.state["Name"]
+                print(instance_state)
                 print("Stopping {0}...".format(i.id))
 
                 i.stop()
                 i.wait_until_stopped()
 
-                for v in i.volumes.all():
+                for v in i.volumes.all(): 
                     if has_pending_snapshot(v):
                         print("Skipping {0}, snapshot already in progress ".format(v.id))
                         continue
                     else:
                         print("   Creating snapshot of {0}".format(v.id))
                         v.create_snapshot(Description="Created by Snapshotalyzer")
+                        if instance_state == 'stopped':
+                            break
+                        else:
+                            print("Starting {0}...".format(i.id))
 
-                print("Starting {0}...".format(i.id))
-
-                i.start()
-                i.wait_until_running()
+                            i.start()
+                            i.wait_until_running()
 
             print("Job's done!")
 

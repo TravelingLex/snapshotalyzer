@@ -1,6 +1,7 @@
 import boto3
 import botocore
 import click
+import datetime
 
 def start_session(profile = 'shotty'):
     session = boto3.Session(profile_name = profile)
@@ -46,16 +47,14 @@ def snapshots():
     help= "Only snapshots for project (tag Project:<name>)")
 @click.option('--all', 'list_all', default=False, is_flag=True,
     help="List all snapshots for each volume, not just the most recent")
+@click.option('--id', 'server_id', default=None,
+    help="Specific instances")   
 @click.pass_context
-def list_snapshots(ctx,project, list_all):
+def list_snapshots(ctx,project, list_all,server_id):
     "List EC2 snapshots"
 
     ec2 = start_session(ctx.obj['PROFILE'])
-<<<<<<< HEAD
     instances = filter_instances(ec2,project,server_id)
-=======
-    instances = filter_instances(ec2,project,server_id)
->>>>>>> 39e927d29216b10a64c0e06884e0edc6b5f5e47c
 
     for i in instances:
         for v in i.volumes.all():
@@ -114,8 +113,10 @@ def instances():
     prompt='Are you sure you want to snapshot?')
 @click.option('--id', 'server_id', default=None,
     help="Specific instances")
+@click.option('--age', type=int, default=None,
+    help="In days, if snapshot is newer than age, no snapshot will be made.")
 @click.pass_context
-def create_snapshots(ctx, project, force, server_id):
+def create_snapshots(ctx, project, force, server_id, age):
     "Create Snapshots for EC2 Instances"
 
     ec2 = start_session(ctx.obj['PROFILE'])
@@ -123,29 +124,40 @@ def create_snapshots(ctx, project, force, server_id):
 
     if force or project or server_id:
         try:
+            today = datetime.datetime.utcnow()
+            now = today.strptime(str(today)[:-7], "%Y-%m-%d %H:%M:%S")
             for i in instances:
-                instance_state = i.state["Name"]
-                print(instance_state)
-                print("Stopping {0}...".format(i.id))
+                for v in i.volumes.all():
+                    iteration = 0
+                    for s in v.snapshots.all():
+                        if iteration is 0:
+                            snapstart = s.start_time
+                            snapdate = snapstart.strptime(str(snapstart)[:-13], "%Y-%m-%d %H:%M:%S")
+                            difference = now - snapdate
+                            if difference.days >= age:
+                                instance_state = i.state["Name"]
+                                print(instance_state)
+                                print("Stopping {0}...".format(i.id))
 
-                i.stop()
-                i.wait_until_stopped()
+                                i.stop()
+                                i.wait_until_stopped()
+                                if has_pending_snapshot(v):
+                                    print("Skipping {0}, snapshot already in progress ".format(v.id))
+                                    continue
+                                else:
+                                    print("   Creating snapshot of {0}".format(v.id))
+                                    v.create_snapshot(Description="Created by Snapshotalyzer")
+                                    if instance_state == 'stopped':
+                                        break
+                                    else:
+                                        print("Starting {0}...".format(i.id))
 
-                for v in i.volumes.all(): 
-                    if has_pending_snapshot(v):
-                        print("Skipping {0}, snapshot already in progress ".format(v.id))
-                        continue
-                    else:
-                        print("   Creating snapshot of {0}".format(v.id))
-                        v.create_snapshot(Description="Created by Snapshotalyzer")
-                        if instance_state == 'stopped':
-                            break
+                                        i.start()
+                                        i.wait_until_running()
+                            iteration = 1
                         else:
-                            print("Starting {0}...".format(i.id))
-
-                            i.start()
-                            i.wait_until_running()
-
+                            print("Skipping {0} due to the snapshot being less than {1} old.".format(v.id,difference))
+                            break
             print("Job's done!")
 
         except botocore.exceptions.WaiterError as e:

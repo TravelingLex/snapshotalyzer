@@ -136,7 +136,6 @@ def create_snapshots(ctx, project, force, server_id, age):
                             difference = now - snapdate
                             if difference.days >= age:
                                 instance_state = i.state["Name"]
-                                print(instance_state)
                                 print("Stopping {0}...".format(i.id))
 
                                 i.stop()

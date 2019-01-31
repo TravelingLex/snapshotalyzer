@@ -3,8 +3,8 @@ import botocore
 import click
 import datetime
 
-def start_session(profile = 'shotty'):
-    session = boto3.Session(profile_name = profile)
+def start_session(profile = 'shotty',region='us-east-2'):
+    session = boto3.Session(profile_name = profile, region_name= region)
     ec2 = session.resource('ec2')
     return ec2
 
@@ -32,11 +32,14 @@ def abort_if_false(ctx, param, value):
 @click.group()
 @click.option('--profile', default='shotty',
     help = 'Please specify an AWS profile.')
+@click.option('--region', default='us-east-1',
+    help = 'Please specify an AWS region.')
 @click.pass_context
-def cli(ctx,profile):
+def cli(ctx,profile,region):
     """Establish Session Parameters"""
     ctx.ensure_object(dict)
     ctx.obj['PROFILE'] = profile
+    ctx.obj['REGION'] = region
 
 @cli.group('snapshots')
 def snapshots():
@@ -53,7 +56,7 @@ def snapshots():
 def list_snapshots(ctx,project, list_all,server_id):
     "List EC2 snapshots"
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2,project,server_id)
 
     for i in instances:
@@ -83,7 +86,7 @@ def volumes():
 def list_volumes(ctx, project):
     "List EC2 volumes"
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2, project)
     
     for i in instances:
@@ -119,7 +122,7 @@ def instances():
 def create_snapshots(ctx, project, force, server_id, age):
     "Create Snapshots for EC2 Instances"
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2, project, server_id)
 
     if force or project or server_id:
@@ -179,7 +182,7 @@ def create_snapshots(ctx, project, force, server_id, age):
 def list_instances(ctx, project):
     "List EC2 instances"
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2, project)
 
     for i in instances:
@@ -210,7 +213,7 @@ def list_instances(ctx, project):
 def stop_instances(ctx, project, force, server_id):
     'Stop EC2 instances'
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2, project, server_id)
 
     if force or project or server_id:
@@ -245,7 +248,7 @@ def stop_instances(ctx, project, force, server_id):
 def start_instances(ctx, project, force, server_id):
     'Start EC2 instances'
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2, project, server_id)
 
     if force or project or server_id:
@@ -281,7 +284,7 @@ def start_instances(ctx, project, force, server_id):
 def reboot_instances(ctx, project, force, server_id):
     'Reboot EC2 Instances'
 
-    ec2 = start_session(ctx.obj['PROFILE'])
+    ec2 = start_session(ctx.obj['PROFILE'],ctx.obj['REGION'])
     instances = filter_instances(ec2, project, server_id)
 
     if force or project or server_id:
@@ -305,4 +308,4 @@ def reboot_instances(ctx, project, force, server_id):
     
 
 if __name__ == '__main__':
-    cli()
+    cli(obj={})
